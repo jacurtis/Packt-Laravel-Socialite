@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Socialite;
 use Auth;
+use App\SocialAccount;
+use App\User;
 
 class SocialAccountController extends Controller
 {
@@ -26,31 +28,31 @@ class SocialAccountController extends Controller
 
     Auth::login($authUser, true);
 
-    return redirect($this->redirectTo);
+    return redirect('/home');
   }
 
-  public function findOrCreateUser($user, $provider)
+  public function findOrCreateUser($socialUser, $provider)
   {
-    $account = SocialAccount::where('provider_name', $provider)->where('provider_id', $user->getId())->first();
+    $account = SocialAccount::where('provider_name', $provider)->where('provider_id', $socialUser->getId())->first();
 
     if ($account) {
       return $account->user;
     } else {
-      $authUser = User::where('email', $user->getEmail())->first();
+      $user = User::where('email', $socialUser->getEmail())->first();
 
-      if (! $authUser) {
-        $authUser = User::create([
-          'email' => $user->getEmail(),
-          'name' => $user->getName(),
+      if (! $user) {
+        $user = User::create([
+          'email' => $socialUser->getEmail(),
+          'name' => $socialUser->getName(),
         ]);
       }
 
-      $authUser->accounts()->create([
-        'provider_id' => $user->getId(),
-        'provider_name' => $user->getName(),
+      $user->accounts()->create([
+        'provider_name' => $provider,
+        'provider_id' => $socialUser->getId(),
       ]);
 
-      return $authUser;
+      return $user;
     }
   }
 }
